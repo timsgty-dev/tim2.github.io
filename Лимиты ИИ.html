@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Лимиты ИИ</title>
+<style>
+:root{--bg:#f4f4f1;--card:#fff;--tx:#1d1d1f;--mut:#76767c;--bd:#e4e4df;--trk:#ecece8;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#121214;--card:#1c1c1f;--tx:#f2f2f4;--mut:#9a9aa2;--bd:#2c2c31;--trk:#2a2a2f}}
+:root[data-theme="dark"]{--bg:#121214;--card:#1c1c1f;--tx:#f2f2f4;--mut:#9a9aa2;--bd:#2c2c31;--trk:#2a2a2f}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{margin:0;background:var(--bg);color:var(--tx);font:16px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}
+main{max-width:520px;margin:0 auto;padding:20px 16px 40px}
+header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+h1{font-size:24px;margin:0}
+.ib{width:40px;height:40px;border-radius:50%;border:1px solid var(--bd);background:var(--card);color:var(--tx);font-size:20px;cursor:pointer;margin-left:8px}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:18px;padding:16px;margin-bottom:14px;border-top:4px solid var(--ac)}
+.ch{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.nm{font-weight:700;font-size:18px;color:var(--ac)}
+.del{background:none;border:0;color:var(--mut);font-size:13px;cursor:pointer}
+.lim{padding:12px 0;border-top:1px solid var(--bd)}
+.lh{display:flex;justify-content:space-between;color:var(--mut);font-size:14px}
+.cd{font-size:30px;font-weight:700;font-variant-numeric:tabular-nums;margin:4px 0}
+.cd.done{color:var(--ac);font-size:22px}
+.trk{height:8px;background:var(--trk);border-radius:99px;overflow:hidden;margin:8px 0}
+.bar{height:100%;background:var(--ac);border-radius:99px;transition:width .5s}
+.at{color:var(--mut);font-size:14px;margin-bottom:10px}
+.go{width:100%;padding:14px;border:0;border-radius:12px;background:var(--ac);color:#fff;font-size:17px;font-weight:600;cursor:pointer}
+.sm{background:none;border:0;color:var(--mut);font-size:14px;text-decoration:underline;cursor:pointer;padding:6px 0;margin-right:14px}
+a.sm{display:inline-block}
+input,select{width:100%;padding:12px;border:1px solid var(--bd);border-radius:10px;background:var(--bg);color:var(--tx);font-size:16px;margin:4px 0 10px}
+label{font-size:14px;color:var(--mut)}
+.panel{background:var(--card);border:1px solid var(--bd);border-radius:14px;padding:14px;margin-bottom:14px}
+.ov{position:fixed;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:flex-end;justify-content:center;z-index:5}
+.sheet{background:var(--card);width:100%;max-width:520px;border-radius:20px 20px 0 0;padding:20px 16px calc(20px + env(safe-area-inset-bottom,0px))}
+.sw{display:flex;gap:10px;margin:6px 0 12px}
+.sw span{width:34px;height:34px;border-radius:50%;cursor:pointer;border:3px solid transparent}
+.sw span.on{border-color:var(--tx)}
+.row{display:flex;gap:10px}.row>*{flex:1}
+.ghost{background:var(--trk);color:var(--tx)}
+.hint{color:var(--mut);font-size:13px;margin:0 0 10px}
+</style>
+</head>
+<body>
+<main>
+<header><h1>Лимиты ИИ</h1><div><button class="ib" id="bell" title="Уведомления">🔔</button><button class="ib" id="gear" title="Настройки">⚙︎</button><button class="ib" id="add" title="Добавить сервис">+</button></div></header>
+<div id="set" class="panel" hidden>
+<label>Название вашей команды в «Командах» iPhone (для кнопки «Будильник»)</label>
+<input id="sc" placeholder="например: Таймер лимита">
+<p class="hint">Команда должна принимать число секунд и ставить таймер в «Часах». Если поле пустое, кнопки не будет.</p>
+</div>
+<div id="list"></div>
+</main>
+<div id="ov" class="ov" hidden><div class="sheet">
+<h2 style="margin:0 0 10px">Новый сервис</h2>
+<label>Название</label><input id="fn" placeholder="Например, ChatGPT">
+<label>Цвет</label><div class="sw" id="sw"></div>
+<label>Название лимита</label><input id="fl" placeholder="например: 3-часовой">
+<label>Тип</label><select id="ft"><option value="window">Окно: старт по кнопке, N часов</option><option value="weekly">Раз в неделю: задаю один раз</option></select>
+<div id="hw"><label>Длина окна, часов</label><input id="fh" type="number" min="1" step="0.5" value="5"></div>
+<div class="row"><button class="go ghost" id="cn">Отмена</button><button class="go" id="ok" style="background:#444">Добавить</button></div>
+</div></div>
+<script>
+var K='ai-limits-v1',W=7*864e5,COLORS=['#d97757','#3b82f6','#10a37f','#8b5cf6','#e11d74','#f59e0b'];
+function seed(){return{shortcut:'',services:[
+{id:'claude',name:'Claude',color:'#d97757',limits:[{id:'c5',label:'5-часовой',kind:'window',hours:5,start:null},{id:'c7',label:'7-дневный',kind:'weekly',anchor:null}]},
+{id:'cursor',name:'Cursor',color:'#3b82f6',limits:[{id:'u7',label:'7-дневный',kind:'weekly',anchor:null}]}]}}
+var S;try{S=JSON.parse(localStorage.getItem(K))}catch(e){}
+if(!S||!S.services)S=seed();
+function save(){try{localStorage.setItem(K,JSON.stringify(S))}catch(e){}}
+function esc(s){return String(s).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
+function pad(n){return n<10?'0'+n:''+n}
+function fmt(ms){var s=Math.max(0,Math.ceil(ms/1000)),d=Math.floor(s/86400);s%=86400;var h=Math.floor(s/3600),m=Math.floor(s%3600/60);s%=60;return(d?d+' д ':'')+(d||h?h+' ч ':'')+pad(m)+' м '+pad(s)+' с'}
+function when(t){return new Date(t).toLocaleString('ru-RU',{weekday:'short',day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})}
+function info(l,now){
+ if(l.kind==='window'){
+  if(l.start==null)return{state:'idle'};
+  var end=l.start+l.hours*36e5;
+  if(now>=end)return{state:'done',end:end};
+  return{state:'run',end:end,prog:(now-l.start)/(end-l.start),rem:end-now};
+ }
+ if(l.anchor==null)return{state:'idle'};
+ var next=l.anchor,cyc=0;
+ if(now>l.anchor){cyc=Math.ceil((now-l.anchor)/W);next=l.anchor+cyc*W}
+ return{state:'run',end:next,prog:Math.min(1,Math.max(0,(now-(next-W))/W)),rem:next-now,cyc:cyc};
+}
+function limHtml(s,l){
+ var now=Date.now(),i=info(l,now),h='<div class="lim" data-s="'+s.id+'" data-l="'+l.id+'"><div class="lh"><span>'+esc(l.label)+'</span><span>'+(l.kind==='weekly'?'повтор каждую неделю':'окно '+l.hours+' ч')+'</span></div>';
+ if(i.state==='idle'){
+  if(l.kind==='window')h+='<div class="at">Нажми после первого сообщения</div><button class="go" data-a="start">Старт</button>';
+  else h+='<div class="at">Когда лимит обновится в следующий раз? Задаётся один раз, дальше повторяется сам.</div><input type="datetime-local" data-f="dt"><button class="go" data-a="wset">Старт</button>';
+ }else if(i.state==='done'){
+  h+='<div class="cd done">Лимит обновился ✓</div><div class="at">с '+when(i.end)+'</div><button class="go" data-a="start">Старт</button>';
+ }else{
+  h+='<div class="cd" data-cd>'+fmt(i.rem)+'</div><div class="trk"><div class="bar" data-bar style="width:'+(i.prog*100).toFixed(1)+'%"></div></div><div class="at">Обновится: '+when(i.end)+'</div><button class="sm" data-a="reset">Сбросить таймер</button>';
+  if(S.shortcut)h+='<a class="sm" href="shortcuts://run-shortcut?name='+encodeURIComponent(S.shortcut)+'&input='+Math.round(i.rem/1000)+'">⏰ Будильник</a>';
+ }
+ return h+'</div>';
+}
+function render(){
+ var el=document.getElementById('list');
+ el.innerHTML=S.services.map(function(s){return'<div class="card" style="--ac:'+esc(s.color)+'"><div class="ch"><span class="nm">'+esc(s.name)+'</span><button class="del" data-del="'+s.id+'">Удалить</button></div>'+s.limits.map(function(l){return limHtml(s,l)}).join('')+'</div>'}).join('')||'<p class="hint">Пусто. Добавь сервис кнопкой +</p>';
+}
+function find(s,l){var sv=S.services.filter(function(x){return x.id===s})[0];return{sv:sv,l:sv&&sv.limits.filter(function(x){return x.id===l})[0]}}
+document.getElementById('list').addEventListener('click',function(e){
+ var b=e.target.closest('button');if(!b)return;
+ if(b.dataset.del){if(confirm('Удалить сервис?')){S.services=S.services.filter(function(x){return x.id!==b.dataset.del});save();render()}return}
+ var box=b.closest('.lim');if(!box)return;
+ var r=find(box.dataset.s,box.dataset.l),l=r.l,a=b.dataset.a;if(!l)return;
+ if(a==='start'){l.start=Date.now();l.notified=false}
+ else if(a==='reset'){l.start=null;l.anchor=null;l.notified=false}
+ else if(a==='wset'){var v=box.querySelector('[data-f=dt]').value;if(!v){alert('Выбери дату и время');return}l.anchor=new Date(v).getTime()}
+ save();render();
+});
+function notify(t,b){try{if(window.Notification&&Notification.permission==='granted')new Notification(t,{body:b});if(navigator.vibrate)navigator.vibrate(200)}catch(e){}}
+function tick(){
+ var now=Date.now(),redo=false;
+ S.services.forEach(function(s){s.limits.forEach(function(l){
+  var i=info(l,now),box=document.querySelector('[data-s="'+s.id+'"][data-l="'+l.id+'"]');
+  if(l.kind==='window'&&i.state==='done'&&!l.notified){l.notified=true;save();notify(s.name+': лимит обновился',l.label+' снова доступен');redo=true}
+  if(l.kind==='weekly'&&i.state==='run'){if(l._c!==undefined&&l._c!==i.cyc)notify(s.name+': лимит обновился',l.label+' сброшен');l._c=i.cyc}
+  if(!box||i.state!=='run')return;
+  var c=box.querySelector('[data-cd]'),br=box.querySelector('[data-bar]');
+  if(c)c.textContent=fmt(i.rem);if(br)br.style.width=(i.prog*100).toFixed(1)+'%';
+ })});
+ if(redo)render();
+}
+var sel=COLORS[0];
+function drawSw(){var el=document.getElementById('sw');el.innerHTML=COLORS.map(function(c){return'<span data-c="'+c+'" class="'+(c===sel?'on':'')+'" style="background:'+c+'"></span>'}).join('')}
+document.getElementById('sw').addEventListener('click',function(e){if(e.target.dataset.c){sel=e.target.dataset.c;drawSw()}});
+document.getElementById('add').onclick=function(){drawSw();document.getElementById('ov').hidden=false};
+document.getElementById('cn').onclick=function(){document.getElementById('ov').hidden=true};
+document.getElementById('ft').onchange=function(){document.getElementById('hw').hidden=this.value==='weekly'};
+document.getElementById('ok').onclick=function(){
+ var n=document.getElementById('fn').value.trim(),lb=document.getElementById('fl').value.trim(),k=document.getElementById('ft').value,h=parseFloat(document.getElementById('fh').value);
+ if(!n){alert('Введи название');return}
+ var l={id:'l'+Date.now(),label:lb||(k==='weekly'?'7-дневный':h+'-часовой'),kind:k};
+ if(k==='window'){l.hours=h>0?h:5;l.start=null}else l.anchor=null;
+ S.services.push({id:'s'+Date.now(),name:n,color:sel,limits:[l]});
+ save();render();document.getElementById('ov').hidden=true;document.getElementById('fn').value='';document.getElementById('fl').value='';
+};
+document.getElementById('gear').onclick=function(){var p=document.getElementById('set');p.hidden=!p.hidden;document.getElementById('sc').value=S.shortcut||''};
+document.getElementById('sc').oninput=function(){S.shortcut=this.value.trim();save();render()};
+document.getElementById('bell').onclick=function(){
+ if(!window.Notification){alert('Уведомления недоступны в этом браузере. На iPhone добавь страницу на экран «Домой».');return}
+ Notification.requestPermission().then(function(p){if(p==='granted')notify('Уведомления включены','Работают, пока страница открыта');else alert('Разрешение не получено')})
+};
+render();setInterval(tick,1000);tick();
+</script>
+</body>
+</html>
